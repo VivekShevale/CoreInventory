@@ -5,9 +5,10 @@ import { gsap } from 'gsap';
 import {
   LayoutDashboard, PackageCheck, Truck, History, Settings,
   ChevronDown, ChevronRight, Sun, Moon, User, LogOut,
-  Warehouse, MapPin, Package, Layers, Menu, X, Bell, Box, SlidersHorizontal, BarChart3
+  Warehouse, MapPin, Package, Layers, Menu, X, Bell, Box, SlidersHorizontal, BarChart3, ArrowLeftRight
 } from 'lucide-react';
 import { toggleTheme } from '../store/slices/themeSlice';
+import StockAlertBell from '../components/StockAlertBell';
 import { logout } from '../store/slices/authSlice';
 
 const NAV = [
@@ -27,12 +28,13 @@ const NAV = [
     children: [
       { label: 'Receipts', path: '/receipts', icon: PackageCheck },
       { label: 'Delivery', path: '/delivery', icon: Truck },
+      { label: 'Transfers', path: '/transfers', icon: ArrowLeftRight },
       { label: 'Adjustments', path: '/adjustments', icon: SlidersHorizontal },
     ],
   },
   {
     label: 'Stock',
-    icon: Package,
+    icon: BarChart3,
     path: '/stock',
   },
   {
@@ -228,10 +230,7 @@ export default function AppLayout({ children }) {
           >
             {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all relative">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
+          <StockAlertBell />
           <Link
             to="/profile"
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"

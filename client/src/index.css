@@ -3,6 +3,10 @@
 /* Dark mode via class strategy */
 @variant dark (&:where(.dark, .dark *));
 
+* {
+    font-family: 'Inter', sans-serif;
+}
+
 /* Smooth scrollbar for dark mode */
 * {
   scrollbar-width: thin;

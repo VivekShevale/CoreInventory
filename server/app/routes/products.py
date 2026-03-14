@@ -40,21 +40,151 @@ def delete_category(cid):
 
 # Products
 
+
+@products_bp.route('/<int:pid>/timeline', methods=['GET'])
+@jwt_required()
+def get_product_timeline(pid):
+    """Full lifetime movement history for a product — receipts, deliveries, transfers, adjustments."""
+    from ..models import StockMove, Operation
+    from datetime import datetime
+
+    p = Product.query.get_or_404(pid)
+    moves = StockMove.query.filter_by(product_id=pid).order_by(StockMove.date.asc()).all()
+
+    # Build running balance
+    events = []
+    running_balance = 0
+    for m in moves:
+        if m.move_type in ['in', 'transfer'] and m.to_location_id:
+            running_balance += m.quantity
+        elif m.move_type == 'out':
+            running_balance -= m.quantity
+        elif m.move_type == 'adjustment':
+            if m.to_location_id:
+                running_balance += m.quantity
+            else:
+                running_balance -= m.quantity
+        elif m.move_type == 'transfer' and m.from_location_id and not m.to_location_id:
+            running_balance -= m.quantity
+
+        events.append({
+            'id': m.id,
+            'date': m.date.isoformat() if m.date else None,
+            'reference': m.reference,
+            'move_type': m.move_type,
+            'from_location': m.from_location.name if m.from_location else None,
+            'from_code': f"{m.from_location.warehouse.short_code}/{m.from_location.short_code}" if m.from_location else None,
+            'to_location': m.to_location.name if m.to_location else None,
+            'to_code': f"{m.to_location.warehouse.short_code}/{m.to_location.short_code}" if m.to_location else None,
+            'quantity': m.quantity,
+            'contact': m.contact,
+            'running_balance': max(0, running_balance),
+            'direction': 'in' if m.move_type in ['in', 'adjustment'] and m.to_location_id else 'out',
+        })
+
+    # Summary stats
+    total_received = sum(e['quantity'] for e in events if e['move_type'] == 'in')
+    total_delivered = sum(e['quantity'] for e in events if e['move_type'] == 'out')
+    total_transferred = sum(e['quantity'] for e in events if e['move_type'] == 'transfer')
+    total_adjusted = sum(e['quantity'] for e in events if e['move_type'] == 'adjustment')
+
+    return jsonify({
+        'product': p.to_dict(),
+        'events': list(reversed(events)),  # newest first for display
+        'summary': {
+            'total_received': total_received,
+            'total_delivered': total_delivered,
+            'total_transferred': total_transferred,
+            'total_adjusted': total_adjusted,
+            'current_stock': p.total_stock(),
+            'total_moves': len(events),
+        },
+    }), 200
+
 @products_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_products():
     category_id = request.args.get('category_id')
+    location_id = request.args.get('location_id')
+    warehouse_id = request.args.get('warehouse_id')
     search = request.args.get('search', '')
-    query = Product.query
+    in_stock_only = request.args.get('in_stock_only', 'false').lower() == 'true'
+
+    if location_id:
+        # Return only products that have stock > 0 at this location
+        stock_rows = StockLevel.query.filter(
+            StockLevel.location_id == int(location_id),
+            StockLevel.quantity > 0
+        ).all()
+        product_ids = [sl.product_id for sl in stock_rows]
+        query = Product.query.filter(Product.id.in_(product_ids))
+    elif warehouse_id:
+        # Return products with stock > 0 in any location of this warehouse
+        from ..models import Warehouse as WH
+        wh = WH.query.get(warehouse_id)
+        if wh:
+            loc_ids = [l.id for l in wh.locations]
+            stock_rows = StockLevel.query.filter(
+                StockLevel.location_id.in_(loc_ids),
+                StockLevel.quantity > 0
+            ).all()
+            product_ids = list({sl.product_id for sl in stock_rows})
+            query = Product.query.filter(Product.id.in_(product_ids))
+        else:
+            query = Product.query
+    else:
+        query = Product.query
+
     if category_id:
-        query = query.filter_by(category_id=category_id)
+        query = query.filter_by(category_id=int(category_id))
     if search:
         query = query.filter(
             (Product.name.ilike(f'%{search}%')) | (Product.sku.ilike(f'%{search}%'))
         )
     products = query.order_by(Product.name).all()
+
+    # Attach location-specific stock if location_id provided
+    if location_id:
+        lid = int(location_id)
+        result = []
+        for p in products:
+            sl = StockLevel.query.filter_by(product_id=p.id, location_id=lid).first()
+            d = p.to_dict()
+            d['location_stock'] = sl.quantity if sl else 0
+            result.append(d)
+        return jsonify(result), 200
+
     return jsonify([p.to_dict() for p in products]), 200
 
+
+
+@products_bp.route('/<int:pid>/stock-distribution', methods=['GET'])
+@jwt_required()
+def get_product_stock_distribution(pid):
+    """Get stock levels broken down by location and warehouse for a product."""
+    p = Product.query.get_or_404(pid)
+    distribution = []
+    total = 0
+    for sl in p.stock_levels:
+        loc = sl.location
+        if loc:
+            distribution.append({
+                'location_id': loc.id,
+                'location_name': loc.name,
+                'location_code': loc.short_code,
+                'warehouse_id': loc.warehouse_id,
+                'warehouse_name': loc.warehouse.name if loc.warehouse else None,
+                'warehouse_code': loc.warehouse.short_code if loc.warehouse else None,
+                'quantity': sl.quantity,
+                'value': round(sl.quantity * p.cost_price, 2),
+            })
+            total += sl.quantity
+    return jsonify({
+        'product': p.to_dict(),
+        'distribution': distribution,
+        'total_stock': total,
+        'total_value': round(total * p.cost_price, 2),
+    }), 200
 
 @products_bp.route('/<int:pid>', methods=['GET'])
 @jwt_required()

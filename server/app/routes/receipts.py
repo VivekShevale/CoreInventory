@@ -2,11 +2,35 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from ..extensions import db
-from ..models import Operation, OperationLine, Warehouse, Product
+from ..models import Operation, OperationLine, Warehouse, Product, StockLevel
 from ..utils.reference import generate_reference
 from ..utils.stock_utils import update_stock, record_move
 
 receipts_bp = Blueprint('receipts', __name__)
+
+def _stock_at_location(product_id, location_id):
+    if not location_id:
+        p = Product.query.get(product_id)
+        return p.total_stock() if p else 0
+    sl = StockLevel.query.filter_by(product_id=product_id, location_id=location_id).first()
+    return sl.quantity if sl else 0
+
+
+def _promote_waiting_deliveries(product_ids):
+    """Re-check all waiting deliveries; promote to ready if stock now sufficient."""
+    waiting_ops = Operation.query.filter(
+        Operation.operation_type == 'delivery',
+        Operation.status == 'waiting'
+    ).all()
+    for delivery in waiting_ops:
+        all_ok = all(
+            _stock_at_location(line.product_id, delivery.from_location_id) >= line.quantity
+            for line in delivery.lines
+        )
+        if all_ok:
+            delivery.status = 'ready'
+
+
 
 
 def get_wh_code(warehouse_id):
@@ -113,11 +137,12 @@ def confirm_receipt(oid):
 @receipts_bp.route('/<int:oid>/validate', methods=['POST'])
 @jwt_required()
 def validate_receipt(oid):
-    """Move from ready to done, update stock"""
+    """Move from ready to done, update stock, then auto-promote waiting deliveries."""
     op = Operation.query.filter_by(id=oid, operation_type='receipt').first_or_404()
     if op.status not in ['ready', 'draft']:
         return jsonify({'error': 'Receipt must be ready to validate'}), 400
 
+    received_product_ids = []
     for line in op.lines:
         update_stock(line.product_id, op.to_location_id, line.quantity)
         record_move(
@@ -130,9 +155,14 @@ def validate_receipt(oid):
             reference=op.reference,
             contact=op.contact
         )
+        received_product_ids.append(line.product_id)
 
     op.status = 'done'
     op.validated_at = datetime.utcnow()
+
+    # Auto-promote waiting deliveries that now have enough stock
+    _promote_waiting_deliveries(received_product_ids)
+
     db.session.commit()
     return jsonify(op.to_dict()), 200
 

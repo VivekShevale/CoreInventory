@@ -14,6 +14,40 @@ def get_wh_code(warehouse_id):
     return wh.short_code if wh else 'WH'
 
 
+def stock_at_location(product_id, location_id):
+    """Get stock quantity for a product at a specific location."""
+    if not location_id:
+        p = Product.query.get(product_id)
+        return p.total_stock() if p else 0
+    sl = StockLevel.query.filter_by(product_id=product_id, location_id=location_id).first()
+    return sl.quantity if sl else 0
+
+
+def compute_status(lines, from_location_id):
+    """Return 'ready' if all lines have enough stock, else 'waiting'."""
+    for line in lines:
+        pid = line.get('product_id') if isinstance(line, dict) else line.product_id
+        qty = line.get('quantity') if isinstance(line, dict) else line.quantity
+        if stock_at_location(pid, from_location_id) < qty:
+            return 'waiting'
+    return 'ready'
+
+
+def promote_waiting_deliveries(product_ids):
+    """After a receipt is validated, re-check all waiting deliveries
+    that contain any of the newly stocked products and promote to ready if possible."""
+    waiting_ops = Operation.query.filter(
+        Operation.operation_type == 'delivery',
+        Operation.status == 'waiting'
+    ).all()
+    for op in waiting_ops:
+        op_product_ids = {l.product_id for l in op.lines}
+        if op_product_ids.intersection(set(product_ids)):
+            new_status = compute_status(op.lines, op.from_location_id)
+            if new_status == 'ready':
+                op.status = 'ready'
+
+
 @delivery_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_deliveries():
@@ -47,6 +81,7 @@ def create_delivery():
     user_id = get_jwt_identity()
     data = request.get_json()
     warehouse_id = int(data['warehouse_id']) if data.get('warehouse_id') else None
+    from_location_id = int(data['from_location_id']) if data.get('from_location_id') else None
     wh_code = get_wh_code(warehouse_id)
     reference = generate_reference(wh_code, 'delivery')
 
@@ -54,7 +89,7 @@ def create_delivery():
         reference=reference,
         operation_type='delivery',
         status='draft',
-        from_location_id=int(data['from_location_id']) if data.get('from_location_id') else None,
+        from_location_id=from_location_id,
         warehouse_id=warehouse_id,
         contact=data.get('contact'),
         scheduled_date=datetime.fromisoformat(data['scheduled_date']) if data.get('scheduled_date') else None,
@@ -64,17 +99,21 @@ def create_delivery():
     db.session.add(op)
     db.session.flush()
 
-    # Check stock, set waiting if any product is out of stock
-    has_waiting = False
-    for line in data.get('lines', []):
-        ol = OperationLine(operation_id=op.id, product_id=line['product_id'], quantity=line['quantity'])
+    lines = data.get('lines', [])
+    for line in lines:
+        ol = OperationLine(
+            operation_id=op.id,
+            product_id=int(line['product_id']),
+            quantity=float(line['quantity'])
+        )
         db.session.add(ol)
-        p = Product.query.get(line['product_id'])
-        if p and p.total_stock() < line['quantity']:
-            has_waiting = True
+    db.session.flush()
 
-    if has_waiting:
-        op.status = 'waiting'
+    # Determine status based on stock at source location
+    if lines:
+        op.status = compute_status(lines, from_location_id)
+    else:
+        op.status = 'draft'
 
     db.session.commit()
     return jsonify(op.to_dict()), 201
@@ -90,40 +129,28 @@ def update_delivery(oid):
 
     if 'contact' in data: op.contact = data['contact']
     if 'notes' in data: op.notes = data['notes']
-    if 'from_location_id' in data: op.from_location_id = int(data['from_location_id']) if data['from_location_id'] else None
-    if 'warehouse_id' in data: op.warehouse_id = int(data['warehouse_id']) if data['warehouse_id'] else None
+    if 'from_location_id' in data:
+        op.from_location_id = int(data['from_location_id']) if data['from_location_id'] else None
+    if 'warehouse_id' in data:
+        op.warehouse_id = int(data['warehouse_id']) if data['warehouse_id'] else None
     if data.get('scheduled_date'):
         op.scheduled_date = datetime.fromisoformat(data['scheduled_date'])
 
     if 'lines' in data:
         OperationLine.query.filter_by(operation_id=op.id).delete()
-        has_waiting = False
         for line in data['lines']:
-            ol = OperationLine(operation_id=op.id, product_id=line['product_id'], quantity=line['quantity'])
+            ol = OperationLine(
+                operation_id=op.id,
+                product_id=int(line['product_id']),
+                quantity=float(line['quantity'])
+            )
             db.session.add(ol)
-            p = Product.query.get(line['product_id'])
-            if p and p.total_stock() < line['quantity']:
-                has_waiting = True
-        if op.status == 'draft' and has_waiting:
-            op.status = 'waiting'
+        db.session.flush()
 
-    db.session.commit()
-    return jsonify(op.to_dict()), 200
+    # Re-compute status (never downgrade a done/canceled op)
+    if op.status not in ['done', 'canceled']:
+        op.status = compute_status(op.lines, op.from_location_id)
 
-
-@delivery_bp.route('/<int:oid>/check', methods=['POST'])
-@jwt_required()
-def check_availability(oid):
-    op = Operation.query.filter_by(id=oid, operation_type='delivery').first_or_404()
-    if op.status != 'draft':
-        return jsonify({'error': 'Can only check draft deliveries'}), 400
-    has_waiting = False
-    for line in op.lines:
-        p = Product.query.get(line.product_id)
-        if not p or p.total_stock() < line.quantity:
-            has_waiting = True
-            break
-    op.status = 'waiting' if has_waiting else 'ready'
     db.session.commit()
     return jsonify(op.to_dict()), 200
 
@@ -132,13 +159,15 @@ def check_availability(oid):
 @jwt_required()
 def validate_delivery(oid):
     op = Operation.query.filter_by(id=oid, operation_type='delivery').first_or_404()
-    if op.status not in ['ready', 'waiting', 'draft']:
-        return jsonify({'error': 'Cannot validate'}), 400
+    if op.status != 'ready':
+        return jsonify({'error': 'Only ready deliveries can be validated'}), 400
 
+    # Final stock check at source location
     for line in op.lines:
+        avail = stock_at_location(line.product_id, op.from_location_id)
         p = Product.query.get(line.product_id)
-        if not p or p.total_stock() < line.quantity:
-            return jsonify({'error': f'Insufficient stock for {p.name if p else line.product_id}'}), 400
+        if avail < line.quantity:
+            return jsonify({'error': f'Insufficient stock for {p.name if p else line.product_id} at selected location (available: {avail})'}), 400
 
     for line in op.lines:
         update_stock(line.product_id, op.from_location_id, -line.quantity)
@@ -168,3 +197,28 @@ def cancel_delivery(oid):
     op.status = 'canceled'
     db.session.commit()
     return jsonify(op.to_dict()), 200
+
+
+@delivery_bp.route('/products-at-location/<int:location_id>', methods=['GET'])
+@jwt_required()
+def products_at_location(location_id):
+    """Return products that have stock > 0 at a specific location."""
+    stock_rows = StockLevel.query.filter(
+        StockLevel.location_id == location_id,
+        StockLevel.quantity > 0
+    ).all()
+    result = []
+    for sl in stock_rows:
+        p = sl.product
+        if p:
+            result.append({
+                'id': p.id,
+                'name': p.name,
+                'sku': p.sku,
+                'unit_of_measure': p.unit_of_measure,
+                'on_hand': sl.quantity,
+                'free_to_use': p.free_to_use(),
+                'cost_price': p.cost_price,
+                'category_name': p.category.name if p.category else None,
+            })
+    return jsonify(result), 200

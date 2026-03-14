@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from ..extensions import db
-from ..models import Warehouse
+from ..models import Warehouse, Location, StockLevel
 
 warehouse_bp = Blueprint('warehouse', __name__)
 
@@ -18,7 +18,17 @@ def get_warehouses():
 def get_warehouse(wid):
     w = Warehouse.query.get_or_404(wid)
     data = w.to_dict()
-    data['locations'] = [l.to_dict() for l in w.locations]
+    locs = []
+    for l in w.locations:
+        loc_data = l.to_dict()
+        stock_rows = StockLevel.query.filter(
+            StockLevel.location_id == l.id,
+            StockLevel.quantity > 0
+        ).all()
+        loc_data['product_count'] = len(stock_rows)
+        loc_data['total_stock'] = sum(sl.quantity for sl in stock_rows)
+        locs.append(loc_data)
+    data['locations'] = locs
     return jsonify(data), 200
 
 

@@ -46,6 +46,7 @@ def create_app():
     from .routes.move_history import move_history_bp
     from .routes.dashboard import dashboard_bp
     from .routes.adjustments import adjustments_bp
+    from .routes.transfers import transfers_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(products_bp, url_prefix='/api/products')
@@ -57,6 +58,7 @@ def create_app():
     app.register_blueprint(move_history_bp, url_prefix='/api/move-history')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
     app.register_blueprint(adjustments_bp, url_prefix='/api/adjustments')
+    app.register_blueprint(transfers_bp, url_prefix='/api/transfers')
 
     with app.app_context():
         db.create_all()

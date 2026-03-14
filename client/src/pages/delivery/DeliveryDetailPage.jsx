@@ -113,9 +113,16 @@ export default function DeliveryDetailPage() {
             {!isDone && (
               <>
                 <Btn variant="secondary" onClick={handleSave} disabled={saving} size="sm">Save</Btn>
-                {(status === 'ready' || status === 'waiting' || status === 'draft') && (
-                  <Btn onClick={handleValidate} disabled={saving} variant="emerald" size="sm">
-                    <CheckCheck size={14} /> Validate
+                {(status === 'ready' || status === 'waiting') && (
+                  <Btn
+                    onClick={handleValidate}
+                    disabled={saving || status === 'waiting'}
+                    variant="emerald"
+                    size="sm"
+                    title={status === 'waiting' ? 'Cannot validate: insufficient stock at source location' : 'Validate delivery'}
+                  >
+                    <CheckCheck size={14} />
+                    {status === 'waiting' ? 'Waiting for Stock' : 'Validate'}
                   </Btn>
                 )}
                 <Btn variant="danger" onClick={handleCancel} disabled={saving} size="sm">
@@ -223,8 +230,8 @@ export default function DeliveryDetailPage() {
             )}
           </div>
 
-          {/* Stock warning banner */}
-          {lines.some(hasStockIssue) && (
+          {/* Stock warning banner — only shown before completion */}
+          {!isDone && lines.some(hasStockIssue) && (
             <div className="mx-4 mt-4 flex items-center gap-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
               <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />
               <p className="text-sm text-amber-700 dark:text-amber-400">Some products have insufficient stock. This delivery may be set to <strong>Waiting</strong> status.</p>
@@ -235,7 +242,7 @@ export default function DeliveryDetailPage() {
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">On Hand</th>
+                {!isDone && <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">On Hand</th>}
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Quantity</th>
                 {!isDone && !isCanceled && <th className="px-6 py-3 w-12" />}
               </tr>
@@ -245,7 +252,7 @@ export default function DeliveryDetailPage() {
                 <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 text-sm">No products added</td></tr>
               ) : (
                 lines.map((line, i) => {
-                  const stockIssue = hasStockIssue(line);
+                  const stockIssue = !isDone && hasStockIssue(line);
                   return (
                     <tr key={line.product_id} className={`border-b border-slate-100 dark:border-slate-800 last:border-0 ${stockIssue ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                       <td className="px-6 py-3.5">
@@ -256,11 +263,13 @@ export default function DeliveryDetailPage() {
                         </div>
                         {stockIssue && <p className="text-xs text-red-500 mt-0.5 ml-5">Insufficient stock</p>}
                       </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <span className={`text-sm font-medium ${stockIssue ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                          {line.on_hand ?? '—'}
-                        </span>
-                      </td>
+                      {!isDone && (
+                        <td className="px-6 py-3.5 text-right">
+                          <span className={`text-sm font-medium ${stockIssue ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                            {line.on_hand ?? '—'}
+                          </span>
+                        </td>
+                      )}
                       <td className="px-6 py-3.5 text-right">
                         {isDone || isCanceled ? (
                           <span className="font-semibold">{line.quantity}</span>
@@ -294,7 +303,7 @@ export default function DeliveryDetailPage() {
         )}
       </div>
 
-      <ProductPicker open={pickerOpen} onClose={() => setPickerOpen(false)} lines={lines} onChange={setLines} />
+      <ProductPicker open={pickerOpen} onClose={() => setPickerOpen(false)} lines={lines} onChange={setLines} locationId={form.from_location_id || null} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ const CRUMB_LABELS = {
   delivery: 'Delivery',
   stock: 'Stock',
   'move-history': 'Move History',
+  transfers: 'Transfers',
   settings: 'Settings',
   warehouse: 'Warehouse',
   locations: 'Locations',

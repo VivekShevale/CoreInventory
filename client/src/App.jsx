@@ -23,9 +23,14 @@ import StockPage from './pages/stock/StockPage';
 import MoveHistoryPage from './pages/movehistory/MoveHistoryPage';
 import WarehousePage from './pages/settings/WarehousePage';
 import LocationsPage from './pages/settings/LocationsPage';
+import LocationDetailPage from './pages/settings/LocationDetailPage';
+import WarehouseDetailPage from './pages/settings/WarehouseDetailPage';
 import AdjustmentsPage from './pages/adjustments/AdjustmentsPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import ProductsPage from './pages/products/ProductsPage';
+import ProductDetailPage from './pages/products/ProductDetailPage';
+import TransferPage from './pages/transfers/TransferPage';
+import TransferDetailPage from './pages/transfers/TransferDetailPage';
 
 function ProtectedRoute({ children }) {
   return (
@@ -67,8 +72,13 @@ export default function App() {
       <Route path="/move-history" element={<ProtectedRoute><MoveHistoryPage /></ProtectedRoute>} />
       <Route path="/adjustments" element={<ProtectedRoute><AdjustmentsPage /></ProtectedRoute>} />
       <Route path="/settings/warehouse" element={<ProtectedRoute><WarehousePage /></ProtectedRoute>} />
+      <Route path="/settings/warehouse/:id" element={<ProtectedRoute><WarehouseDetailPage /></ProtectedRoute>} />
+      <Route path="/settings/locations/:id" element={<ProtectedRoute><LocationDetailPage /></ProtectedRoute>} />
       <Route path="/settings/locations" element={<ProtectedRoute><LocationsPage /></ProtectedRoute>} />
       <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+      <Route path="/products/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
+      <Route path="/transfers" element={<ProtectedRoute><TransferPage /></ProtectedRoute>} />
+      <Route path="/transfers/:id" element={<ProtectedRoute><TransferDetailPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
       {/* Default */}

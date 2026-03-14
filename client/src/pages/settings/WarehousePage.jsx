@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus, Pencil, Trash2, Warehouse, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Warehouse, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../store/slices/warehouseSlice';
 import { Btn, InputField, LoadingSpinner, PageHeader, Modal } from '../../components/ui';
 import Breadcrumb from '../../components/Breadcrumb';
@@ -31,6 +32,7 @@ function WarehouseForm({ initial, onSave, onCancel }) {
 export default function WarehousePage() {
   const dispatch = useDispatch();
   const { warehouses, loading } = useSelector(s => s.warehouse);
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 

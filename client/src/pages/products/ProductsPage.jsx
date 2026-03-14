@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
-import { Plus, Search, Pencil, Trash2, Package, Tag } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Package, Tag, FileSpreadsheet } from 'lucide-react';
 import api from '../../configs/api';
 import { Btn, Modal, InputField, SelectField, LoadingSpinner, PageHeader, SearchBar } from '../../components/ui';
 import Breadcrumb from '../../components/Breadcrumb';
 import { formatCurrency } from '../../lib/utils';
 import { uploadToCloudinary } from '../../lib/cloudinary';
+import { downloadExcel } from '../../lib/export';
 
 function ProductForm({ initial, categories, locations, onSave, onClose }) {
   const [form, setForm] = useState({
@@ -200,6 +201,10 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [filterWarehouse, setFilterWarehouse] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [warehouses, setWarehouses] = useState([]);
+  const [allLocations, setAllLocations] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -211,18 +216,24 @@ export default function ProductsPage() {
       const params = {};
       if (q) params.search = q;
       if (filterCat) params.category_id = filterCat;
-      const [pRes, cRes, lRes] = await Promise.all([
+      if (filterLocation) params.location_id = filterLocation;
+      else if (filterWarehouse) params.warehouse_id = filterWarehouse;
+      const [pRes, cRes, lRes, whRes, allLocRes] = await Promise.all([
         api.get('/api/products/', { params }),
         api.get('/api/products/categories'),
+        api.get('/api/locations/'),
+        api.get('/api/warehouses/'),
         api.get('/api/locations/'),
       ]);
       setProducts(pRes.data);
       setCategories(cRes.data);
       setLocations(lRes.data);
+      setWarehouses(whRes.data);
+      setAllLocations(allLocRes.data);
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchAll(search); }, [search, filterCat]);
+  useEffect(() => { fetchAll(search); }, [search, filterCat, filterLocation, filterWarehouse]);
 
   useEffect(() => {
     if (!loading && tableRef.current) {
@@ -260,6 +271,16 @@ export default function ProductsPage() {
     fetchAll(search);
   };
 
+  const handleExport = () => {
+    const headers = ['Name', 'SKU', 'Category', 'Unit', 'Cost Price', 'On Hand', 'Free to Use', 'Status'];
+    const rows = products.map(p => [
+      p.name, p.sku, p.category_name || '', p.unit_of_measure,
+      p.cost_price, p.on_hand, p.free_to_use,
+      p.on_hand === 0 ? 'Out of Stock' : p.on_hand <= p.reorder_point && p.reorder_point > 0 ? 'Low Stock' : 'In Stock',
+    ]);
+    downloadExcel('products_report', headers, rows, 'Products');
+  };
+
   return (
     <div>
       <Breadcrumb />
@@ -274,8 +295,30 @@ export default function ProductsPage() {
           <option value="">All Categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <select
+          value={filterWarehouse}
+          onChange={e => { setFilterWarehouse(e.target.value); setFilterLocation(''); }}
+          className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value="">All Warehouses</option>
+          {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+        <select
+          value={filterLocation}
+          onChange={e => setFilterLocation(e.target.value)}
+          className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+        >
+          <option value="">All Locations</option>
+          {(filterWarehouse
+            ? allLocations.filter(l => l.warehouse_id === parseInt(filterWarehouse))
+            : allLocations
+          ).map(l => <option key={l.id} value={l.id}>{l.name} ({l.warehouse_code})</option>)}
+        </select>
         <Btn variant="secondary" size="sm" onClick={() => setCatModalOpen(true)}>
           <Tag size={14} /> New Category
+        </Btn>
+        <Btn variant="secondary" onClick={handleExport}>
+          <FileSpreadsheet size={14} /> Export
         </Btn>
         <Btn onClick={() => setModalOpen(true)}>
           <Plus size={16} /> New Product
@@ -343,7 +386,12 @@ export default function ProductsPage() {
                                 : <Package size={16} className="text-slate-400" />
                               }
                             </div>
-                            <span className="font-semibold text-slate-800 dark:text-white">{p.name}</span>
+                            <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/products/${p.id}`); }}
+                          className="font-semibold text-slate-800 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
+                        >
+                          {p.name}
+                        </button>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">

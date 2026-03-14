@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus, Trash2, MapPin } from 'lucide-react';
+import { Plus, Trash2, MapPin, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { fetchLocations, createLocation, deleteLocation, fetchWarehouses } from '../../store/slices/warehouseSlice';
 import { Btn, InputField, SelectField, LoadingSpinner, PageHeader, Modal } from '../../components/ui';
 import Breadcrumb from '../../components/Breadcrumb';
 
 export default function LocationsPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { locations, warehouses, loading } = useSelector(s => s.warehouse);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', short_code: '', warehouse_id: '' });
@@ -86,12 +88,20 @@ export default function LocationsPage() {
                     <span className="ml-2 text-xs font-mono text-slate-400">({loc.warehouse_code})</span>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <button
-                      onClick={() => handleDelete(loc.id)}
-                      className="w-7 h-7 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center ml-auto transition-all"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <div className="flex items-center gap-1 justify-end">
+                      <button
+                        onClick={() => navigate(`/settings/locations/${loc.id}`)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                      >
+                        View Stock <ChevronRight size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(loc.id)}
+                        className="w-7 h-7 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-all"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
