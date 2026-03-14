@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { Plus, Search, Pencil, Trash2, Package, Tag, FileSpreadsheet } from 'lucide-react';
 import api from '../../configs/api';
-import { Btn, Modal, InputField, SelectField, LoadingSpinner, PageHeader, SearchBar } from '../../components/ui';
+import { Btn, Modal, InputField, SelectField, LoadingSpinner } from '../../components/ui';
 import Breadcrumb from '../../components/Breadcrumb';
 import { formatCurrency } from '../../lib/utils';
-import { uploadToCloudinary } from '../../lib/cloudinary';
 import { downloadExcel } from '../../lib/export';
 
 function ProductForm({ initial, categories, locations, onSave, onClose }) {
@@ -19,24 +18,11 @@ function ProductForm({ initial, categories, locations, onSave, onClose }) {
     reorder_point: initial?.reorder_point || '',
     initial_stock: '',
     location_id: '',
-    image_url: initial?.image_url || '',
   });
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const isEdit = !!initial;
-
-  const handleImage = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadToCloudinary(file);
-      setForm(f => ({ ...f, image_url: url }));
-    } catch { setError('Image upload failed'); }
-    finally { setUploading(false); }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,29 +39,10 @@ function ProductForm({ initial, categories, locations, onSave, onClose }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-400">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-900/50 rounded-lg px-4 py-3 text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
-
-      {/* Image */}
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-          {form.image_url
-            ? <img src={form.image_url} alt="" className="w-full h-full object-cover" />
-            : <Package size={24} className="text-slate-400" />
-          }
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-            Product Image
-          </label>
-          <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            {uploading ? 'Uploading...' : 'Choose Image'}
-            <input type="file" accept="image/*" onChange={handleImage} className="hidden" disabled={uploading} />
-          </label>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <InputField
@@ -159,11 +126,21 @@ function ProductForm({ initial, categories, locations, onSave, onClose }) {
         )}
       </div>
 
-      <div className="flex gap-2 justify-end pt-2 border-t border-slate-200 dark:border-slate-700">
-        <Btn variant="secondary" type="button" onClick={onClose}>Cancel</Btn>
-        <Btn type="submit" disabled={saving || uploading}>
+      <div className="flex gap-2 justify-end pt-2 border-t border-zinc-200 dark:border-zinc-700">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 text-sm rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:opacity-90 transition disabled:opacity-50"
+        >
           {saving ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
-        </Btn>
+        </button>
       </div>
     </form>
   );
@@ -184,10 +161,28 @@ function CategoryModal({ onClose, onCreated }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <InputField label="Category Name" placeholder="e.g. Furniture" value={name} onChange={e => setName(e.target.value)} required />
+      <InputField 
+        label="Category Name" 
+        placeholder="e.g. Furniture" 
+        value={name} 
+        onChange={e => setName(e.target.value)} 
+        required 
+      />
       <div className="flex gap-2 justify-end">
-        <Btn variant="secondary" type="button" onClick={onClose}>Cancel</Btn>
-        <Btn type="submit" disabled={saving}>{saving ? 'Creating...' : 'Create'}</Btn>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 text-sm rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:opacity-90 transition disabled:opacity-50"
+        >
+          {saving ? 'Creating...' : 'Create'}
+        </button>
       </div>
     </form>
   );
@@ -282,31 +277,75 @@ export default function ProductsPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6">
       <Breadcrumb />
 
-      <PageHeader title="Products">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search by name or SKU..." />
+      {/* Header - matching Dashboard style */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white mb-1">Products</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm">Manage your product catalog and inventory</p>
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => setCatModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+          >
+            <Tag size={16} /> New Category
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+          >
+            <FileSpreadsheet size={16} /> Export
+          </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2 text-sm rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:opacity-90 transition"
+          >
+            <Plus size={16} /> New Product
+          </button>
+        </div>
+      </div>
+
+      {/* Filters - matching ProjectDetail tabs style */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or SKU..."
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        
         <select
           value={filterCat}
           onChange={e => setFilterCat(e.target.value)}
-          className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+          className="px-3 py-2 text-sm rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="">All Categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        
         <select
           value={filterWarehouse}
           onChange={e => { setFilterWarehouse(e.target.value); setFilterLocation(''); }}
-          className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+          className="px-3 py-2 text-sm rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="">All Warehouses</option>
           {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
         </select>
+        
         <select
           value={filterLocation}
           onChange={e => setFilterLocation(e.target.value)}
-          className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+          className="px-3 py-2 text-sm rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="">All Locations</option>
           {(filterWarehouse
@@ -314,57 +353,57 @@ export default function ProductsPage() {
             : allLocations
           ).map(l => <option key={l.id} value={l.id}>{l.name} ({l.warehouse_code})</option>)}
         </select>
-        <Btn variant="secondary" size="sm" onClick={() => setCatModalOpen(true)}>
-          <Tag size={14} /> New Category
-        </Btn>
-        <Btn variant="secondary" onClick={handleExport}>
-          <FileSpreadsheet size={14} /> Export
-        </Btn>
-        <Btn onClick={() => setModalOpen(true)}>
-          <Plus size={16} /> New Product
-        </Btn>
-      </PageHeader>
+      </div>
 
       {loading ? (
         <LoadingSpinner />
       ) : (
         <div ref={tableRef}>
-          {/* Stats row */}
-          <div className="flex gap-4 mb-5 flex-wrap">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
-              <Package size={16} className="text-indigo-500" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{products.length} products</span>
+          {/* Stats row - matching ProjectDetail info cards */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div className="dark:bg-gradient-to-br dark:from-zinc-800/70 dark:to-zinc-900/50 border border-zinc-200 dark:border-zinc-800 flex justify-between p-4 py-2.5 rounded">
+              <div>
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">Total Products</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{products.length}</div>
+              </div>
+              <Package className="size-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
-              <Tag size={16} className="text-violet-500" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{categories.length} categories</span>
+            <div className="dark:bg-gradient-to-br dark:from-zinc-800/70 dark:to-zinc-900/50 border border-zinc-200 dark:border-zinc-800 flex justify-between p-4 py-2.5 rounded">
+              <div>
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">Categories</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{categories.length}</div>
+              </div>
+              <Tag className="size-4 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
 
           {products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
-                <Package size={28} className="text-slate-400" />
+            <div className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
+              <div className="w-16 h-16 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+                <Package size={28} className="text-zinc-400" />
               </div>
-              <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">No products found</h3>
-              <p className="text-sm text-slate-400 mt-1 max-w-xs">Create your first product to start managing inventory.</p>
-              <Btn className="mt-5" onClick={() => setModalOpen(true)}>
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-white">No products found</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs">Create your first product to start managing inventory.</p>
+              <button
+                onClick={() => setModalOpen(true)}
+                className="mt-5 flex items-center gap-2 px-5 py-2 text-sm rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:opacity-90 transition"
+              >
                 <Plus size={15} /> Create Product
-              </Btn>
+              </button>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">SKU</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Category</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">UOM</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Cost Price</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">On Hand</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Free to Use</th>
-                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Stock Status</th>
+                  <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
+                    <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Product</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">SKU</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Category</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">UOM</th>
+                    <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Cost Price</th>
+                    <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">On Hand</th>
+                    <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Free to Use</th>
+                    <th className="px-5 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Stock Status</th>
                     <th className="px-5 py-3 w-20" />
                   </tr>
                 </thead>
@@ -375,71 +414,71 @@ export default function ProductsPage() {
                     return (
                       <tr
                         key={p.id}
-                        className={`border-b border-slate-100 dark:border-slate-800 last:border-0 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors
-                          ${isOut ? 'bg-red-50/40 dark:bg-red-900/5' : isLow ? 'bg-amber-50/40 dark:bg-amber-900/5' : ''}`}
+                        className={`border-b border-zinc-100 dark:border-zinc-800 last:border-0 transition-colors cursor-pointer
+                          ${isOut 
+                            ? 'bg-red-50/50 dark:bg-red-500/5 hover:bg-red-100/50 dark:hover:bg-red-500/10' 
+                            : isLow 
+                              ? 'bg-amber-50/50 dark:bg-amber-500/5 hover:bg-amber-100/50 dark:hover:bg-amber-500/10' 
+                              : 'bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                          }`}
+                        onClick={() => navigate(`/products/${p.id}`)}
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-                              {p.image_url
-                                ? <img src={p.image_url} alt="" className="w-full h-full object-cover" />
-                                : <Package size={16} className="text-slate-400" />
-                              }
+                            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              <Package size={16} className="text-zinc-400" />
                             </div>
-                            <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/products/${p.id}`); }}
-                          className="font-semibold text-slate-800 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
-                        >
-                          {p.name}
-                        </button>
+                            <span className="font-medium text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              {p.name}
+                            </span>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="font-mono text-xs font-bold px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                          <span className="font-mono text-xs font-medium px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
                             {p.sku}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-xs">
+                        <td className="px-5 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs">
                           {p.category_name || '—'}
                         </td>
-                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-xs capitalize">
+                        <td className="px-5 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs capitalize">
                           {p.unit_of_measure}
                         </td>
-                        <td className="px-5 py-3.5 text-right font-medium text-slate-700 dark:text-slate-300">
+                        <td className="px-5 py-3.5 text-right font-medium text-zinc-700 dark:text-zinc-300">
                           {formatCurrency(p.cost_price)}
                         </td>
-                        <td className="px-5 py-3.5 text-right font-bold text-slate-700 dark:text-slate-200">
+                        <td className="px-5 py-3.5 text-right font-semibold text-zinc-700 dark:text-zinc-300">
                           {p.on_hand}
                         </td>
-                        <td className="px-5 py-3.5 text-right text-slate-500 dark:text-slate-400">
+                        <td className="px-5 py-3.5 text-right text-zinc-500 dark:text-zinc-400">
                           {p.free_to_use}
                         </td>
                         <td className="px-5 py-3.5 text-center">
                           {isOut ? (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">
                               Out of Stock
                             </span>
                           ) : isLow ? (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">
                               Low Stock
                             </span>
                           ) : (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                               In Stock
                             </span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1 justify-end">
                             <button
                               onClick={() => setEditing(p)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
                             >
                               <Pencil size={13} />
                             </button>
                             <button
                               onClick={() => handleDelete(p.id)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                             >
                               <Trash2 size={13} />
                             </button>
@@ -456,7 +495,7 @@ export default function ProductsPage() {
       )}
 
       {/* Create Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Product" size="lg">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Product">
         <ProductForm
           categories={categories}
           locations={locations}
@@ -466,7 +505,7 @@ export default function ProductsPage() {
       </Modal>
 
       {/* Edit Modal */}
-      <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Product" size="lg">
+      <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Product">
         {editing && (
           <ProductForm
             initial={editing}
@@ -479,7 +518,7 @@ export default function ProductsPage() {
       </Modal>
 
       {/* Category Modal */}
-      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title="New Category" size="sm">
+      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title="New Category">
         <CategoryModal
           onClose={() => setCatModalOpen(false)}
           onCreated={(cat) => {
