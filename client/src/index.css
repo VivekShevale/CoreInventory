@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Dark mode via class strategy */
+@variant dark (&:where(.dark, .dark *));
+
+/* Smooth scrollbar for dark mode */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4f46e5 transparent;
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #4f46e5;
+  border-radius: 99px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+}
