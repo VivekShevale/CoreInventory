@@ -32,6 +32,11 @@ import ProductDetailPage from './pages/products/ProductDetailPage';
 import TransferPage from './pages/transfers/TransferPage';
 import TransferDetailPage from './pages/transfers/TransferDetailPage';
 
+// ✅ Tour
+import { useTour } from './hooks/useTour';
+import TourOverlay from './components/TourOverlay';
+
+// Protected Route (UNCHANGED)
 function ProtectedRoute({ children }) {
   return (
     <AuthGuard>
@@ -43,47 +48,139 @@ function ProtectedRoute({ children }) {
 export default function App() {
   const dispatch = useDispatch();
   const { mode } = useSelector(s => s.theme);
-  const { token } = useSelector(s => s.auth);
+  const { user, token } = useSelector(s => s.auth);
 
-  // Apply saved theme on mount
+  // ✅ Tour hook
+  const { showTour, completeTour } = useTour(user);
+
+  // ✅ Apply saved theme
   useEffect(() => {
     dispatch(setTheme(mode));
-  }, []);
+  }, [dispatch, mode]);
 
-  // Re-fetch user on reload if token exists
+  // ✅ Re-fetch user if token exists
   useEffect(() => {
     if (token) dispatch(fetchMe());
-  }, []);
+  }, [dispatch, token]);
 
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+    <>
+      {/* ✅ Tour overlay (outside routes) */}
+      {showTour && <TourOverlay onFinish={completeTour} />}
 
-      {/* Protected */}
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/receipts" element={<ProtectedRoute><ReceiptsPage /></ProtectedRoute>} />
-      <Route path="/receipts/:id" element={<ProtectedRoute><ReceiptDetailPage /></ProtectedRoute>} />
-      <Route path="/delivery" element={<ProtectedRoute><DeliveryPage /></ProtectedRoute>} />
-      <Route path="/delivery/:id" element={<ProtectedRoute><DeliveryDetailPage /></ProtectedRoute>} />
-      <Route path="/stock" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
-      <Route path="/move-history" element={<ProtectedRoute><MoveHistoryPage /></ProtectedRoute>} />
-      <Route path="/adjustments" element={<ProtectedRoute><AdjustmentsPage /></ProtectedRoute>} />
-      <Route path="/settings/warehouse" element={<ProtectedRoute><WarehousePage /></ProtectedRoute>} />
-      <Route path="/settings/warehouse/:id" element={<ProtectedRoute><WarehouseDetailPage /></ProtectedRoute>} />
-      <Route path="/settings/locations/:id" element={<ProtectedRoute><LocationDetailPage /></ProtectedRoute>} />
-      <Route path="/settings/locations" element={<ProtectedRoute><LocationsPage /></ProtectedRoute>} />
-      <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
-      <Route path="/products/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
-      <Route path="/transfers" element={<ProtectedRoute><TransferPage /></ProtectedRoute>} />
-      <Route path="/transfers/:id" element={<ProtectedRoute><TransferDetailPage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Routes>
+        {/* Public */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-      {/* Default */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        {/* Protected */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/receipts" element={
+          <ProtectedRoute>
+            <ReceiptsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/receipts/:id" element={
+          <ProtectedRoute>
+            <ReceiptDetailPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/delivery" element={
+          <ProtectedRoute>
+            <DeliveryPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/delivery/:id" element={
+          <ProtectedRoute>
+            <DeliveryDetailPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/stock" element={
+          <ProtectedRoute>
+            <StockPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/move-history" element={
+          <ProtectedRoute>
+            <MoveHistoryPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/adjustments" element={
+          <ProtectedRoute>
+            <AdjustmentsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/settings/warehouse" element={
+          <ProtectedRoute>
+            <WarehousePage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/settings/warehouse/:id" element={
+          <ProtectedRoute>
+            <WarehouseDetailPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/settings/locations" element={
+          <ProtectedRoute>
+            <LocationsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/settings/locations/:id" element={
+          <ProtectedRoute>
+            <LocationDetailPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/products" element={
+          <ProtectedRoute>
+            <ProductsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/products/:id" element={
+          <ProtectedRoute>
+            <ProductDetailPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/transfers" element={
+          <ProtectedRoute>
+            <TransferPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/transfers/:id" element={
+          <ProtectedRoute>
+            <TransferDetailPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } />
+
+        {/* Default */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </>
   );
 }
