@@ -47,7 +47,9 @@ def create_app():
     from .routes.dashboard import dashboard_bp
     from .routes.adjustments import adjustments_bp
     from .routes.transfers import transfers_bp
+    from .routes.health import health_bp
 
+    app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(products_bp, url_prefix='/api/products')
     app.register_blueprint(receipts_bp, url_prefix='/api/receipts')
