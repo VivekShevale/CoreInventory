@@ -48,6 +48,7 @@ def create_app():
     from .routes.adjustments import adjustments_bp
     from .routes.transfers import transfers_bp
     from .routes.health import health_bp
+    from .routes.ai_routes import ai_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -61,6 +62,7 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
     app.register_blueprint(adjustments_bp, url_prefix='/api/adjustments')
     app.register_blueprint(transfers_bp, url_prefix='/api/transfers')
+    app.register_blueprint(ai_bp, url_prefix='/api/ai')
 
     with app.app_context():
         db.create_all()
