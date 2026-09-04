@@ -23,6 +23,14 @@ pipeline {
             }
         }
 
+        stage('Docker Deploy') {
+            steps {
+                bat 'docker stop coreinventory-frontend-jenkins || exit /b 0'
+                bat 'docker rm coreinventory-frontend-jenkins || exit /b 0'
+                bat 'docker run -d --name coreinventory-frontend-jenkins -p 8082:80 coreinventory-frontend:jenkins'
+            }
+        }
+
         stage('Frontend Info') {
             steps {
                 dir('client') {
