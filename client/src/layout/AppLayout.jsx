@@ -29,6 +29,7 @@ import {
   TrendingUp,
   ShoppingCart,
   AlertTriangle,
+  Bot,
 } from "lucide-react";
 import { toggleTheme } from "../store/slices/themeSlice";
 import StockAlertBell from "../components/StockAlertBell";
@@ -94,6 +95,7 @@ const NAV = [
       },
     ],
   },
+  { label: "AI Agent", path: "/agent", icon: Bot },
 ];
 
 export default function AppLayout({ children }) {

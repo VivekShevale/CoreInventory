@@ -41,6 +41,9 @@ import ForecastPage from "./pages/ai/ForecastPage";
 import ReorderAgentPage from "./pages/ai/ReorderAgentPage";
 import AnomalyPage from "./pages/ai/AnomalyPage";
 
+// AI Agent
+import AgentPage from "./pages/Agent/AgentPage";
+
 // Protected Route
 function ProtectedRoute({ children }) {
   return (
@@ -261,6 +264,13 @@ export default function App() {
             <ProtectedRoute>
               <AnomalyPage />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/agent"
+          element={
+            isAuthenticated ? <ChatPage /> : <Navigate to="/login" replace />
           }
         />
 

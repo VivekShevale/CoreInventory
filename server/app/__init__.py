@@ -49,6 +49,7 @@ def create_app():
     from .routes.transfers import transfers_bp
     from .routes.health import health_bp
     from .routes.ai_routes import ai_bp
+    from .routes.agent_routes import agent_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -63,8 +64,11 @@ def create_app():
     app.register_blueprint(adjustments_bp, url_prefix='/api/adjustments')
     app.register_blueprint(transfers_bp, url_prefix='/api/transfers')
     app.register_blueprint(ai_bp, url_prefix='/api/ai')
+    app.register_blueprint(agent_bp, url_prefix='/api/agent')
 
     with app.app_context():
+        # Import chat models so SQLAlchemy creates the new tables
+        from app.mcp import chat_models  # noqa: F401
         db.create_all()
 
     return app
