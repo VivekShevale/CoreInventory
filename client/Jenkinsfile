@@ -9,6 +9,12 @@ pipeline {
             }
         }
 
+        stage('Docker Info') {
+            steps {
+                bat 'docker version'
+            }
+        }
+
         stage('Frontend Info') {
             steps {
                 dir('client') {
