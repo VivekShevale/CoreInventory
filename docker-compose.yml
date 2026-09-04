@@ -29,5 +29,14 @@ services:
       db:
         condition: service_healthy
 
+  client:
+    build:
+      context: ./client
+    container_name: coreinventory-frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      - server
+
 volumes:
   postgres_data:
