@@ -1,0 +1,33 @@
+services:
+
+  db:
+    image: postgres:15
+    container_name: coreinventory-db
+    environment:
+      POSTGRES_DB: coreinventory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coreinventory"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./server
+    container_name: coreinventory-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/coreinventory
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
