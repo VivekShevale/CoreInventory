@@ -7,7 +7,7 @@ import { LoadingSpinner } from './ui';
 export default function AuthGuard({ children }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { token, user, loading } = useSelector(s => s.auth);
+  const { token, user } = useSelector(s => s.auth);
 
   useEffect(() => {
     if (!token) {

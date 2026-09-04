@@ -21,7 +21,6 @@ import {
 import Breadcrumb from "../../components/Breadcrumb";
 import { formatCurrency } from "../../lib/utils";
 import { downloadExcel } from "../../lib/export";
-import CategorySuggestion from "../../components/CategorySuggestion";
 
 function ProductForm({ initial, categories, locations, onSave, onClose }) {
   const [form, setForm] = useState({
@@ -191,12 +190,6 @@ function CategoryModal({ onClose, onCreated }) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
-      />
-      <CategorySuggestion
-        name={formData.name}
-        sku={formData.sku}
-        currentCategory={formData.category}
-        onSelect={(cat) => setFormData((f) => ({ ...f, category: cat }))}
       />
       <div className="flex gap-2 justify-end">
         <button

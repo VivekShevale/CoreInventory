@@ -166,7 +166,6 @@ export default function DashboardCharts({ stats }) {
   const stockValue  = s.stockValue  || [];
   const recentMoves = s.recentMoves || [];
   const opStatus    = s.opStatus    || { draft:[0,0,0,0], waiting:[0,0,0,0], ready:[0,0,0,0], done:[0,0,0,0] };
-  const kpis        = s.kpis        || {};
 
   const catMax     = categories.length  ? Math.max(...categories.map(c => c.qty))  : 1;
   const contactMax = contacts.length    ? Math.max(...contacts.map(c => c.vol))    : 1;

@@ -418,8 +418,6 @@ export default function TourOverlay({ onFinish }) {
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const sidebarIndex = SIDEBAR_STEPS.findIndex(s => s.id === step.id);
-
   return (
     <div style={S.overlay} onClick={(e) => { if (e.target === e.currentTarget) onFinish(); }}>
       <style>{`

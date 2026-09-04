@@ -39,6 +39,7 @@ export default function ProductDetailModal({ productId, onClose }) {
 
   useEffect(() => {
     if (!productId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
     setLoading(true);
     api.get(`/api/products/${productId}/stock-distribution`)
       .then(r => setData(r.data))

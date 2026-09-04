@@ -145,24 +145,6 @@ export default function AppLayout({ children }) {
     navigate("/login");
   };
 
-  // Status color mapping (from ProjectDetail)
-  const getStatusColor = (status) => {
-    const colors = {
-      PLANNING: "bg-zinc-200 text-zinc-900 dark:bg-zinc-600 dark:text-zinc-200",
-      ACTIVE:
-        "bg-emerald-200 text-emerald-900 dark:bg-emerald-500 dark:text-emerald-900",
-      ON_HOLD:
-        "bg-amber-200 text-amber-900 dark:bg-amber-500 dark:text-amber-900",
-      COMPLETED:
-        "bg-blue-200 text-blue-900 dark:bg-blue-500 dark:text-blue-900",
-      CANCELLED: "bg-red-200 text-red-900 dark:bg-red-500 dark:text-red-900",
-    };
-    return (
-      colors[status] ||
-      "bg-zinc-200 text-zinc-900 dark:bg-zinc-600 dark:text-zinc-200"
-    );
-  };
-
   return (
     <div className="flex h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-200 overflow-hidden">
       {/* Sidebar */}

@@ -53,7 +53,10 @@ export default function AnomalyPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(days); }, [days]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
+    load(days);
+  }, [days]);
 
   if (loading && !data) return <div className="space-y-4"><Breadcrumb /><LoadingSpinner /></div>;
 

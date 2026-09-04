@@ -23,6 +23,7 @@ export function useTour(user) {
     // Server is the source of truth; localStorage just prevents a flash
     const localDone = localStorage.getItem(`tour_done_${user.id}`) === 'true';
     if (!user.has_seen_tour && !localDone) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- derived from the user prop, not re-render input
       setShowTour(true);
     }
   }, [user]);

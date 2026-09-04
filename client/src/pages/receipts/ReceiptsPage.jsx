@@ -40,7 +40,7 @@ export default function ReceiptsPage() {
 
   const columns = [
     { key: 'reference', label: 'Reference', render: (v) => <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{v}</span> },
-    { key: 'from_code', label: 'From', render: (_, row) => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
+    { key: 'from_code', label: 'From', render: () => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
     { key: 'to_code', label: 'To', render: (_, row) => <span className="font-medium text-sm">{row.to_code || '—'}</span> },
     { key: 'contact', label: 'Contact', render: (v) => <span className="text-slate-600 dark:text-slate-300">{v || '—'}</span> },
     { key: 'scheduled_date', label: 'Scheduled Date', render: (v) => formatDate(v) },

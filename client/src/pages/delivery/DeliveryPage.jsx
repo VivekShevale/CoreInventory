@@ -41,7 +41,7 @@ export default function DeliveryPage() {
   const columns = [
     { key: 'reference', label: 'Reference', render: (v) => <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">{v}</span> },
     { key: 'from_code', label: 'From', render: (_, row) => <span className="font-medium text-sm">{row.from_code || '—'}</span> },
-    { key: 'to_code', label: 'To', render: (_, row) => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
+    { key: 'to_code', label: 'To', render: () => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
     { key: 'contact', label: 'Contact', render: (v) => <span className="text-slate-600 dark:text-slate-300">{v || '—'}</span> },
     { key: 'scheduled_date', label: 'Scheduled Date', render: (v) => formatDate(v) },
     { key: 'status', label: 'Status', render: (v) => <StatusBadge status={v} /> },

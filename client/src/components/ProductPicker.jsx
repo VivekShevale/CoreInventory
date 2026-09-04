@@ -10,6 +10,7 @@ export default function ProductPicker({ open, onClose, lines, onChange, location
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
     setLoading(true);
     const params = { search };
     if (locationId) {

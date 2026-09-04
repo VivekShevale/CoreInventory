@@ -55,9 +55,6 @@ export default function App() {
   const { mode } = useSelector((s) => s.theme);
   const { user, token } = useSelector((s) => s.auth);
 
-  // ✅ Auth status
-  const isAuthenticated = !!token;
-
   // ✅ Tour hook
   const { showTour, completeTour } = useTour(user);
 

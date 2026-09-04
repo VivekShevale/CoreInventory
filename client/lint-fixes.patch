@@ -1,0 +1,419 @@
+diff --git a/client/src/App.jsx b/client/src/App.jsx
+index dffcd45..ee7d4d8 100644
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@ -55,9 +55,6 @@ export default function App() {
+   const { mode } = useSelector((s) => s.theme);
+   const { user, token } = useSelector((s) => s.auth);
+ 
+-  // ✅ Auth status
+-  const isAuthenticated = !!token;
+-
+   // ✅ Tour hook
+   const { showTour, completeTour } = useTour(user);
+ 
+diff --git a/client/src/components/AuthGuard.jsx b/client/src/components/AuthGuard.jsx
+index 334d004..271c368 100644
+--- a/client/src/components/AuthGuard.jsx
++++ b/client/src/components/AuthGuard.jsx
+@@ -7,7 +7,7 @@ import { LoadingSpinner } from './ui';
+ export default function AuthGuard({ children }) {
+   const dispatch = useDispatch();
+   const navigate = useNavigate();
+-  const { token, user, loading } = useSelector(s => s.auth);
++  const { token, user } = useSelector(s => s.auth);
+ 
+   useEffect(() => {
+     if (!token) {
+diff --git a/client/src/components/CategorySuggestion.jsx b/client/src/components/CategorySuggestion.jsx
+index 0a4f57b..366718e 100644
+--- a/client/src/components/CategorySuggestion.jsx
++++ b/client/src/components/CategorySuggestion.jsx
+@@ -22,6 +22,7 @@ export default function CategorySuggestion({ name, sku, onSelect, currentCategor
+   const debounceRef = useRef(null);
+ 
+   useEffect(() => {
++    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset UI state when the target product changes
+     setDismissed(false);
+     setAccepted(null);
+ 
+diff --git a/client/src/components/DashboardCharts.jsx b/client/src/components/DashboardCharts.jsx
+index 474c9c8..eb195d3 100644
+--- a/client/src/components/DashboardCharts.jsx
++++ b/client/src/components/DashboardCharts.jsx
+@@ -166,7 +166,6 @@ export default function DashboardCharts({ stats }) {
+   const stockValue  = s.stockValue  || [];
+   const recentMoves = s.recentMoves || [];
+   const opStatus    = s.opStatus    || { draft:[0,0,0,0], waiting:[0,0,0,0], ready:[0,0,0,0], done:[0,0,0,0] };
+-  const kpis        = s.kpis        || {};
+ 
+   const catMax     = categories.length  ? Math.max(...categories.map(c => c.qty))  : 1;
+   const contactMax = contacts.length    ? Math.max(...contacts.map(c => c.vol))    : 1;
+diff --git a/client/src/components/FilterBar.jsx b/client/src/components/FilterBar.jsx
+index 8dc0ecc..a8e3088 100644
+--- a/client/src/components/FilterBar.jsx
++++ b/client/src/components/FilterBar.jsx
+@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
+ 
+ const STATUSES = ['draft', 'waiting', 'ready', 'done', 'canceled'];
+ 
+-export default function FilterBar({ onSearch, onFilter, view, onViewChange, filters, setFilters }) {
++export default function FilterBar({ onSearch, view, onViewChange, filters, setFilters }) {
+   const [searchOpen, setSearchOpen] = useState(false);
+   const [filterOpen, setFilterOpen] = useState(false);
+   const { warehouses } = useSelector(s => s.warehouse);
+diff --git a/client/src/components/ProductDetailModal.jsx b/client/src/components/ProductDetailModal.jsx
+index ae8c3ab..f11f53b 100644
+--- a/client/src/components/ProductDetailModal.jsx
++++ b/client/src/components/ProductDetailModal.jsx
+@@ -39,6 +39,7 @@ export default function ProductDetailModal({ productId, onClose }) {
+ 
+   useEffect(() => {
+     if (!productId) return;
++    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
+     setLoading(true);
+     api.get(`/api/products/${productId}/stock-distribution`)
+       .then(r => setData(r.data))
+diff --git a/client/src/components/ProductPicker.jsx b/client/src/components/ProductPicker.jsx
+index 35f683f..cc36b2c 100644
+--- a/client/src/components/ProductPicker.jsx
++++ b/client/src/components/ProductPicker.jsx
+@@ -10,6 +10,7 @@ export default function ProductPicker({ open, onClose, lines, onChange, location
+ 
+   useEffect(() => {
+     if (!open) return;
++    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
+     setLoading(true);
+     const params = { search };
+     if (locationId) {
+diff --git a/client/src/components/ProductSelector.jsx b/client/src/components/ProductSelector.jsx
+index 5495650..0067ea2 100644
+--- a/client/src/components/ProductSelector.jsx
++++ b/client/src/components/ProductSelector.jsx
+@@ -9,13 +9,19 @@ export default function ProductSelector({ onSelect }) {
+   const ref = useRef(null);
+ 
+   useEffect(() => {
+-    if (query.length < 1) { setResults([]); return; }
++    if (query.length < 1) {
++      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear stale results when the search box is emptied
++      setResults([]);
++      return;
++    }
+     const timer = setTimeout(async () => {
+       try {
+         const res = await api.get('/api/products/', { params: { search: query } });
+         setResults(res.data.slice(0, 8));
+         setOpen(true);
+-      } catch {}
++      } catch (err) {
++        console.error('Product search failed:', err);
++      }
+     }, 250);
+     return () => clearTimeout(timer);
+   }, [query]);
+diff --git a/client/src/components/TourOverlay.jsx b/client/src/components/TourOverlay.jsx
+index e48b887..17ff06a 100644
+--- a/client/src/components/TourOverlay.jsx
++++ b/client/src/components/TourOverlay.jsx
+@@ -418,8 +418,6 @@ export default function TourOverlay({ onFinish }) {
+     return () => { document.body.style.overflow = ''; };
+   }, []);
+ 
+-  const sidebarIndex = SIDEBAR_STEPS.findIndex(s => s.id === step.id);
+-
+   return (
+     <div style={S.overlay} onClick={(e) => { if (e.target === e.currentTarget) onFinish(); }}>
+       <style>{`
+diff --git a/client/src/components/ui.jsx b/client/src/components/ui.jsx
+index 97aa059..ccae717 100644
+--- a/client/src/components/ui.jsx
++++ b/client/src/components/ui.jsx
+@@ -12,7 +12,8 @@ export function StatusBadge({ status }) {
+ }
+ 
+ /* ── KpiCard ── */
+-export function KpiCard({ title, value, icon: Icon, color = 'indigo', sub, onClick }) {
++export function KpiCard({ title, value, icon, color = 'indigo', sub, onClick }) {
++  const Icon = icon;
+   const colors = {
+     indigo: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400',
+     emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
+@@ -38,7 +39,8 @@ export function KpiCard({ title, value, icon: Icon, color = 'indigo', sub, onCli
+ }
+ 
+ /* ── EmptyState ── */
+-export function EmptyState({ icon: Icon, title, description, action }) {
++export function EmptyState({ icon, title, description, action }) {
++  const Icon = icon;
+   return (
+     <div className="flex flex-col items-center justify-center py-20 text-center">
+       <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+diff --git a/client/src/hooks/useTour.js b/client/src/hooks/useTour.js
+index 2ef8d41..863702a 100644
+--- a/client/src/hooks/useTour.js
++++ b/client/src/hooks/useTour.js
+@@ -23,6 +23,7 @@ export function useTour(user) {
+     // Server is the source of truth; localStorage just prevents a flash
+     const localDone = localStorage.getItem(`tour_done_${user.id}`) === 'true';
+     if (!user.has_seen_tour && !localDone) {
++      // eslint-disable-next-line react-hooks/set-state-in-effect -- derived from the user prop, not re-render input
+       setShowTour(true);
+     }
+   }, [user]);
+diff --git a/client/src/layout/AppLayout.jsx b/client/src/layout/AppLayout.jsx
+index 0e3defe..f544eb0 100644
+--- a/client/src/layout/AppLayout.jsx
++++ b/client/src/layout/AppLayout.jsx
+@@ -145,24 +145,6 @@ export default function AppLayout({ children }) {
+     navigate("/login");
+   };
+ 
+-  // Status color mapping (from ProjectDetail)
+-  const getStatusColor = (status) => {
+-    const colors = {
+-      PLANNING: "bg-zinc-200 text-zinc-900 dark:bg-zinc-600 dark:text-zinc-200",
+-      ACTIVE:
+-        "bg-emerald-200 text-emerald-900 dark:bg-emerald-500 dark:text-emerald-900",
+-      ON_HOLD:
+-        "bg-amber-200 text-amber-900 dark:bg-amber-500 dark:text-amber-900",
+-      COMPLETED:
+-        "bg-blue-200 text-blue-900 dark:bg-blue-500 dark:text-blue-900",
+-      CANCELLED: "bg-red-200 text-red-900 dark:bg-red-500 dark:text-red-900",
+-    };
+-    return (
+-      colors[status] ||
+-      "bg-zinc-200 text-zinc-900 dark:bg-zinc-600 dark:text-zinc-200"
+-    );
+-  };
+-
+   return (
+     <div className="flex h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-200 overflow-hidden">
+       {/* Sidebar */}
+diff --git a/client/src/lib/export.js b/client/src/lib/export.js
+index c2bd542..c6573c0 100644
+--- a/client/src/lib/export.js
++++ b/client/src/lib/export.js
+@@ -45,7 +45,19 @@ export function downloadExcel(filename, headers, rows, sheetName = 'Sheet1') {
+     <html xmlns:o="urn:schemas-microsoft-com:office:office"
+           xmlns:x="urn:schemas-microsoft-com:office:excel"
+           xmlns="http://www.w3.org/TR/REC-html40">
+-    <head><meta charset="utf-8"/></head>
++    <head>
++      <meta charset="utf-8"/>
++      <!--[if gte mso 9]><xml>
++        <x:ExcelWorkbook>
++          <x:ExcelWorksheets>
++            <x:ExcelWorksheet>
++              <x:Name>${esc(sheetName)}</x:Name>
++              <x:WorksheetOptions></x:WorksheetOptions>
++            </x:ExcelWorksheet>
++          </x:ExcelWorksheets>
++        </x:ExcelWorkbook>
++      </xml><![endif]-->
++    </head>
+     <body>
+       <table>
+         <thead>${thead}</thead>
+diff --git a/client/src/pages/adjustments/AdjustmentsPage.jsx b/client/src/pages/adjustments/AdjustmentsPage.jsx
+index 20018d1..5b2d919 100644
+--- a/client/src/pages/adjustments/AdjustmentsPage.jsx
++++ b/client/src/pages/adjustments/AdjustmentsPage.jsx
+@@ -11,7 +11,6 @@ import api from '../../configs/api';
+ export default function AdjustmentsPage() {
+   const dispatch = useDispatch();
+   const { locations, warehouses } = useSelector(s => s.warehouse);
+-  const { user } = useSelector(s => s.auth);
+   const [adjustments, setAdjustments] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [form, setForm] = useState({ warehouse_id: '', location_id: '', notes: '' });
+diff --git a/client/src/pages/ai/AnomalyPage.jsx b/client/src/pages/ai/AnomalyPage.jsx
+index e66fac5..174cf9e 100644
+--- a/client/src/pages/ai/AnomalyPage.jsx
++++ b/client/src/pages/ai/AnomalyPage.jsx
+@@ -53,7 +53,10 @@ export default function AnomalyPage() {
+       .finally(() => setLoading(false));
+   };
+ 
+-  useEffect(() => { load(days); }, [days]);
++  useEffect(() => {
++    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
++    load(days);
++  }, [days]);
+ 
+   if (loading && !data) return <div className="space-y-4"><Breadcrumb /><LoadingSpinner /></div>;
+ 
+diff --git a/client/src/pages/ai/ForecastPage.jsx b/client/src/pages/ai/ForecastPage.jsx
+index fcc9d87..78ec836 100644
+--- a/client/src/pages/ai/ForecastPage.jsx
++++ b/client/src/pages/ai/ForecastPage.jsx
+@@ -63,14 +63,19 @@ export default function ForecastPage() {
+     api.get(`/api/ai/forecast?horizon=${horizon}`)
+       .then(r => {
+         setAllForecasts(r.data.forecasts || []);
+-        if (r.data.forecasts?.length && !selected) {
+-          setSelected(r.data.forecasts[0]);
++        if (r.data.forecasts?.length) {
++          // Functional update avoids needing `selected` as a dependency here,
++          // while still only auto-selecting the first item once.
++          setSelected(prev => prev ?? r.data.forecasts[0]);
+         }
+       })
+       .finally(() => setLoading(false));
+   }, [horizon]);
+ 
+-  useEffect(() => { loadAll(); }, [loadAll]);
++  useEffect(() => {
++    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
++    loadAll();
++  }, [loadAll]);
+ 
+   const loadDetail = (productId) => {
+     setDetailLoading(true);
+diff --git a/client/src/pages/dashboard/DashboardPage.jsx b/client/src/pages/dashboard/DashboardPage.jsx
+index 11eb487..a9f9465 100644
+--- a/client/src/pages/dashboard/DashboardPage.jsx
++++ b/client/src/pages/dashboard/DashboardPage.jsx
+@@ -21,7 +21,8 @@ import DashboardCharts from "../../components/DashboardCharts";
+ import AIInsightsPanel from "../../components/AIInsightsPanel";
+ 
+ // ── OpBlock (fixed — original had broken early-return bug) ────────────────────
+-function OpBlock({ title, icon: Icon, color, items, onClick }) {
++function OpBlock({ title, icon, color, items, onClick }) {
++  const Icon = icon;
+   const colors = {
+     indigo: {
+       bg: "bg-gradient-to-br from-blue-500 to-blue-600",
+diff --git a/client/src/pages/delivery/DeliveryPage.jsx b/client/src/pages/delivery/DeliveryPage.jsx
+index dcbdd42..986ed7c 100644
+--- a/client/src/pages/delivery/DeliveryPage.jsx
++++ b/client/src/pages/delivery/DeliveryPage.jsx
+@@ -41,7 +41,7 @@ export default function DeliveryPage() {
+   const columns = [
+     { key: 'reference', label: 'Reference', render: (v) => <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">{v}</span> },
+     { key: 'from_code', label: 'From', render: (_, row) => <span className="font-medium text-sm">{row.from_code || '—'}</span> },
+-    { key: 'to_code', label: 'To', render: (_, row) => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
++    { key: 'to_code', label: 'To', render: () => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
+     { key: 'contact', label: 'Contact', render: (v) => <span className="text-slate-600 dark:text-slate-300">{v || '—'}</span> },
+     { key: 'scheduled_date', label: 'Scheduled Date', render: (v) => formatDate(v) },
+     { key: 'status', label: 'Status', render: (v) => <StatusBadge status={v} /> },
+diff --git a/client/src/pages/products/ProductDetailPage.jsx b/client/src/pages/products/ProductDetailPage.jsx
+index da78039..34a2051 100644
+--- a/client/src/pages/products/ProductDetailPage.jsx
++++ b/client/src/pages/products/ProductDetailPage.jsx
+@@ -271,7 +271,7 @@ export default function ProductDetailPage() {
+                     </tr>
+                   </thead>
+                   <tbody ref={timelineRef}>
+-                    {events.map((e, i) => {
++                    {events.map((e) => {
+                       const cfg = TYPE_CONFIG[e.move_type] || TYPE_CONFIG.adjustment;
+                       const Icon = cfg.icon;
+                       return (
+diff --git a/client/src/pages/products/ProductsPage.jsx b/client/src/pages/products/ProductsPage.jsx
+index 8e3b4a5..3bca0d8 100644
+--- a/client/src/pages/products/ProductsPage.jsx
++++ b/client/src/pages/products/ProductsPage.jsx
+@@ -21,7 +21,6 @@ import {
+ import Breadcrumb from "../../components/Breadcrumb";
+ import { formatCurrency } from "../../lib/utils";
+ import { downloadExcel } from "../../lib/export";
+-import CategorySuggestion from "../../components/CategorySuggestion";
+ 
+ function ProductForm({ initial, categories, locations, onSave, onClose }) {
+   const [form, setForm] = useState({
+@@ -192,12 +191,6 @@ function CategoryModal({ onClose, onCreated }) {
+         onChange={(e) => setName(e.target.value)}
+         required
+       />
+-      <CategorySuggestion
+-        name={formData.name}
+-        sku={formData.sku}
+-        currentCategory={formData.category}
+-        onSelect={(cat) => setFormData((f) => ({ ...f, category: cat }))}
+-      />
+       <div className="flex gap-2 justify-end">
+         <button
+           type="button"
+diff --git a/client/src/pages/receipts/ReceiptDetailPage.jsx b/client/src/pages/receipts/ReceiptDetailPage.jsx
+index b344a93..41d1b94 100644
+--- a/client/src/pages/receipts/ReceiptDetailPage.jsx
++++ b/client/src/pages/receipts/ReceiptDetailPage.jsx
+@@ -9,7 +9,7 @@ import { fetchWarehouses, fetchLocations } from '../../store/slices/warehouseSli
+ import { Btn, InputField, SelectField, LoadingSpinner } from '../../components/ui';
+ import ProductPicker from '../../components/ProductPicker';
+ import Breadcrumb from '../../components/Breadcrumb';
+-import { formatDate, formatDateTime } from '../../lib/utils';
++import { formatDateTime } from '../../lib/utils';
+ 
+ const STATUS_STEPS = ['draft', 'ready', 'done'];
+ 
+@@ -78,7 +78,7 @@ export default function ReceiptDetailPage() {
+       } else {
+         await dispatch(updateReceipt({ id: receipt.id, data: payload }));
+       }
+-    } catch (e) { setError('Failed to save'); }
++    } catch (err) { console.error('Failed to save receipt:', err); setError('Failed to save'); }
+     finally { setSaving(false); }
+   };
+ 
+diff --git a/client/src/pages/receipts/ReceiptsPage.jsx b/client/src/pages/receipts/ReceiptsPage.jsx
+index 1477ad0..6fcbcaa 100644
+--- a/client/src/pages/receipts/ReceiptsPage.jsx
++++ b/client/src/pages/receipts/ReceiptsPage.jsx
+@@ -40,7 +40,7 @@ export default function ReceiptsPage() {
+ 
+   const columns = [
+     { key: 'reference', label: 'Reference', render: (v) => <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{v}</span> },
+-    { key: 'from_code', label: 'From', render: (_, row) => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
++    { key: 'from_code', label: 'From', render: () => <span className="text-slate-500 dark:text-slate-400 text-xs">Vendor</span> },
+     { key: 'to_code', label: 'To', render: (_, row) => <span className="font-medium text-sm">{row.to_code || '—'}</span> },
+     { key: 'contact', label: 'Contact', render: (v) => <span className="text-slate-600 dark:text-slate-300">{v || '—'}</span> },
+     { key: 'scheduled_date', label: 'Scheduled Date', render: (v) => formatDate(v) },
+diff --git a/client/src/pages/settings/AdjustmentsPage.jsx b/client/src/pages/settings/AdjustmentsPage.jsx
+index 20018d1..5b2d919 100644
+--- a/client/src/pages/settings/AdjustmentsPage.jsx
++++ b/client/src/pages/settings/AdjustmentsPage.jsx
+@@ -11,7 +11,6 @@ import api from '../../configs/api';
+ export default function AdjustmentsPage() {
+   const dispatch = useDispatch();
+   const { locations, warehouses } = useSelector(s => s.warehouse);
+-  const { user } = useSelector(s => s.auth);
+   const [adjustments, setAdjustments] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [form, setForm] = useState({ warehouse_id: '', location_id: '', notes: '' });
+diff --git a/client/src/pages/settings/WarehouseDetailPage.jsx b/client/src/pages/settings/WarehouseDetailPage.jsx
+index e9b31b1..2c646ed 100644
+--- a/client/src/pages/settings/WarehouseDetailPage.jsx
++++ b/client/src/pages/settings/WarehouseDetailPage.jsx
+@@ -28,7 +28,10 @@ export default function WarehouseDetailPage() {
+       .finally(() => setLoading(false));
+   };
+ 
+-  useEffect(() => { fetchWarehouse(); }, [id]);
++  useEffect(() => {
++    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
++    fetchWarehouse();
++  }, [id]);
+ 
+   useEffect(() => {
+     if (!loading && warehouse) {
+diff --git a/client/src/pages/settings/WarehousePage.jsx b/client/src/pages/settings/WarehousePage.jsx
+index cd37afd..2361623 100644
+--- a/client/src/pages/settings/WarehousePage.jsx
++++ b/client/src/pages/settings/WarehousePage.jsx
+@@ -1,7 +1,6 @@
+ import React, { useEffect, useState } from 'react';
+ import { useDispatch, useSelector } from 'react-redux';
+ import { Plus, Pencil, Trash2, Warehouse, ChevronRight } from 'lucide-react';
+-import { useNavigate } from 'react-router-dom';
+ import { fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../store/slices/warehouseSlice';
+ import { Btn, InputField, LoadingSpinner, PageHeader, Modal } from '../../components/ui';
+ import Breadcrumb from '../../components/Breadcrumb';
+@@ -32,7 +31,6 @@ function WarehouseForm({ initial, onSave, onCancel }) {
+ export default function WarehousePage() {
+   const dispatch = useDispatch();
+   const { warehouses, loading } = useSelector(s => s.warehouse);
+-  const navigate = useNavigate();
+   const [modalOpen, setModalOpen] = useState(false);
+   const [editing, setEditing] = useState(null);

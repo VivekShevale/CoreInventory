@@ -21,7 +21,8 @@ import DashboardCharts from "../../components/DashboardCharts";
 import AIInsightsPanel from "../../components/AIInsightsPanel";
 
 // ── OpBlock (fixed — original had broken early-return bug) ────────────────────
-function OpBlock({ title, icon: Icon, color, items, onClick }) {
+function OpBlock({ title, icon, color, items, onClick }) {
+  const Icon = icon;
   const colors = {
     indigo: {
       bg: "bg-gradient-to-br from-blue-500 to-blue-600",

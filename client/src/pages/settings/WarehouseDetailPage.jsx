@@ -28,7 +28,10 @@ export default function WarehouseDetailPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchWarehouse(); }, [id]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
+    fetchWarehouse();
+  }, [id]);
 
   useEffect(() => {
     if (!loading && warehouse) {

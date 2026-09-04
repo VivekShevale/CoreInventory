@@ -11,7 +11,6 @@ import api from '../../configs/api';
 export default function AdjustmentsPage() {
   const dispatch = useDispatch();
   const { locations, warehouses } = useSelector(s => s.warehouse);
-  const { user } = useSelector(s => s.auth);
   const [adjustments, setAdjustments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ warehouse_id: '', location_id: '', notes: '' });

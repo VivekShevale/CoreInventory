@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 
 const STATUSES = ['draft', 'waiting', 'ready', 'done', 'canceled'];
 
-export default function FilterBar({ onSearch, onFilter, view, onViewChange, filters, setFilters }) {
+export default function FilterBar({ onSearch, view, onViewChange, filters, setFilters }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const { warehouses } = useSelector(s => s.warehouse);

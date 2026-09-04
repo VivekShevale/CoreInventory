@@ -22,6 +22,7 @@ export default function CategorySuggestion({ name, sku, onSelect, currentCategor
   const debounceRef = useRef(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset UI state when the target product changes
     setDismissed(false);
     setAccepted(null);
 

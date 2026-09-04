@@ -9,13 +9,19 @@ export default function ProductSelector({ onSelect }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    if (query.length < 1) { setResults([]); return; }
+    if (query.length < 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear stale results when the search box is emptied
+      setResults([]);
+      return;
+    }
     const timer = setTimeout(async () => {
       try {
         const res = await api.get('/api/products/', { params: { search: query } });
         setResults(res.data.slice(0, 8));
         setOpen(true);
-      } catch {}
+      } catch (err) {
+        console.error('Product search failed:', err);
+      }
     }, 250);
     return () => clearTimeout(timer);
   }, [query]);

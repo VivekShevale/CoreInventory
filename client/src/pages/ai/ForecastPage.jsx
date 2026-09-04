@@ -63,14 +63,19 @@ export default function ForecastPage() {
     api.get(`/api/ai/forecast?horizon=${horizon}`)
       .then(r => {
         setAllForecasts(r.data.forecasts || []);
-        if (r.data.forecasts?.length && !selected) {
-          setSelected(r.data.forecasts[0]);
+        if (r.data.forecasts?.length) {
+          // Functional update avoids needing `selected` as a dependency here,
+          // while still only auto-selecting the first item once.
+          setSelected(prev => prev ?? r.data.forecasts[0]);
         }
       })
       .finally(() => setLoading(false));
   }, [horizon]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick off loading state for the async fetch below
+    loadAll();
+  }, [loadAll]);
 
   const loadDetail = (productId) => {
     setDetailLoading(true);

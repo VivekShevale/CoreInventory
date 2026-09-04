@@ -271,7 +271,7 @@ export default function ProductDetailPage() {
                     </tr>
                   </thead>
                   <tbody ref={timelineRef}>
-                    {events.map((e, i) => {
+                    {events.map((e) => {
                       const cfg = TYPE_CONFIG[e.move_type] || TYPE_CONFIG.adjustment;
                       const Icon = cfg.icon;
                       return (

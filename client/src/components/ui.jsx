@@ -12,7 +12,8 @@ export function StatusBadge({ status }) {
 }
 
 /* ── KpiCard ── */
-export function KpiCard({ title, value, icon: Icon, color = 'indigo', sub, onClick }) {
+export function KpiCard({ title, value, icon, color = 'indigo', sub, onClick }) {
+  const Icon = icon;
   const colors = {
     indigo: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400',
     emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
@@ -38,7 +39,8 @@ export function KpiCard({ title, value, icon: Icon, color = 'indigo', sub, onCli
 }
 
 /* ── EmptyState ── */
-export function EmptyState({ icon: Icon, title, description, action }) {
+export function EmptyState({ icon, title, description, action }) {
+  const Icon = icon;
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">

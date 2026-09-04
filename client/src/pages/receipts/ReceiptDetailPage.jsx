@@ -9,7 +9,7 @@ import { fetchWarehouses, fetchLocations } from '../../store/slices/warehouseSli
 import { Btn, InputField, SelectField, LoadingSpinner } from '../../components/ui';
 import ProductPicker from '../../components/ProductPicker';
 import Breadcrumb from '../../components/Breadcrumb';
-import { formatDate, formatDateTime } from '../../lib/utils';
+import { formatDateTime } from '../../lib/utils';
 
 const STATUS_STEPS = ['draft', 'ready', 'done'];
 
@@ -78,7 +78,7 @@ export default function ReceiptDetailPage() {
       } else {
         await dispatch(updateReceipt({ id: receipt.id, data: payload }));
       }
-    } catch (e) { setError('Failed to save'); }
+    } catch (err) { console.error('Failed to save receipt:', err); setError('Failed to save'); }
     finally { setSaving(false); }
   };
 

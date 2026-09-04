@@ -45,7 +45,19 @@ export function downloadExcel(filename, headers, rows, sheetName = 'Sheet1') {
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
           xmlns:x="urn:schemas-microsoft-com:office:excel"
           xmlns="http://www.w3.org/TR/REC-html40">
-    <head><meta charset="utf-8"/></head>
+    <head>
+      <meta charset="utf-8"/>
+      <!--[if gte mso 9]><xml>
+        <x:ExcelWorkbook>
+          <x:ExcelWorksheets>
+            <x:ExcelWorksheet>
+              <x:Name>${esc(sheetName)}</x:Name>
+              <x:WorksheetOptions></x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml><![endif]-->
+    </head>
     <body>
       <table>
         <thead>${thead}</thead>
