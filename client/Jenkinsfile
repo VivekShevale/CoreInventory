@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Frontend Info') {
+            steps {
+                dir('client') {
+                    bat 'node --version'
+                    bat 'npm --version'
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('client') {
+                    bat 'npm install'
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir('client') {
+                    bat 'npm run lint'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('client') {
+                    bat 'npm run build'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Frontend pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Frontend pipeline failed.'
+        }
+    }
+}
