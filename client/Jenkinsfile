@@ -3,9 +3,36 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        stage('Frontend Info') {
             steps {
-                checkout scm
+                dir('client') {
+                    bat 'node --version'
+                    bat 'npm --version'
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('client') {
+                    bat 'npm ci'
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir('client') {
+                    bat 'npm run lint'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('client') {
+                    bat 'npm run build'
+                }
             }
         }
 
@@ -28,39 +55,6 @@ pipeline {
                 bat 'docker stop coreinventory-frontend-jenkins || exit /b 0'
                 bat 'docker rm coreinventory-frontend-jenkins || exit /b 0'
                 bat 'docker run -d --name coreinventory-frontend-jenkins -p 8082:80 coreinventory-frontend:jenkins'
-            }
-        }
-
-        stage('Frontend Info') {
-            steps {
-                dir('client') {
-                    bat 'node --version'
-                    bat 'npm --version'
-                }
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                dir('client') {
-                    bat 'npm install'
-                }
-            }
-        }
-
-        stage('Lint') {
-            steps {
-                dir('client') {
-                    bat 'npm run lint'
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                dir('client') {
-                    bat 'npm run build'
-                }
             }
         }
     }
