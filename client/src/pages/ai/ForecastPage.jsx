@@ -1,11 +1,30 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend
+} from 'chart.js';
 import api from '../../configs/api';
 import Breadcrumb from '../../components/Breadcrumb';
 import { LoadingSpinner } from '../../components/ui';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend
+);
 
 const TREND_COLOR = { rising: 'text-red-500', falling: 'text-teal-500', stable: 'text-zinc-400' };
 const TREND_ICON  = { rising: '↑ Rising',      falling: '↓ Falling',     stable: '→ Stable' };
